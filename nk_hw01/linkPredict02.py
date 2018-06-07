@@ -230,7 +230,7 @@ def generateTrainData(edges01, edge02):
 
 def generateTrainData2(G, nodes01, nodes02, edges02, path):
     period1_not_in_2 = nodes01.append(nodes02).drop_duplicates(keep=False)
-    period1_node_shuffle = random.Random(2).sample(list(period1_not_in_2), 450)
+    period1_node_shuffle = random.Random(23).sample(list(period1_not_in_2), 650)
     sub_graph = G.subgraph(period1_node_shuffle)
     sub_graph_complement = nx.complement(sub_graph)
     # pos = nx.spring_layout(sub_graph)  # 圖的畫法
@@ -254,7 +254,7 @@ def generateTrainData2(G, nodes01, nodes02, edges02, path):
 
 
 # !!!! 設定是否要重新train
-need_generate_train_data = False
+need_generate_train_data = True
 train_df = None
 if need_generate_train_data == True:
     # train_df = generateTrainData(period1_all_possible_edgs_different_period2_edgs, peroid2_edge)
@@ -399,7 +399,7 @@ def calFeature(data, G, path):
 
     data['temp_diff'] = pd.Series(temp_diff, index=data.index)
     data['comm_auth'] = pd.Series(comm_auth, index=data.index)
-    data['overlap_title'] = pd.Series(overlap_title, index=data.index)
+    #data['overlap_title'] = pd.Series(overlap_title, index=data.index)
 
     print(data.head(10))
 
@@ -425,9 +425,9 @@ ML
 '''
 # train
 train_feature = zip(train_df['cn'], train_df['jaccard'], train_df['adam'], train_df['cc_mul'], train_df['cc_add'],
-                    train_df['pa_mul'], train_df['pa_add'])
-train_feature = [[cn, jaccard, adam, cc_mul, cc_add, pa_mul, pa_add]
-                 for cn, jaccard, adam, cc_mul, cc_add, pa_mul, pa_add in train_feature]
+                    train_df['pa_mul'], train_df['pa_add'], train_df['temp_diff'], train_df['comm_auth'])
+train_feature = [[cn, jaccard, adam, cc_mul, cc_add, pa_mul, pa_add,temp_diff,comm_auth]
+                 for cn, jaccard, adam, cc_mul, cc_add, pa_mul, pa_add,temp_diff,comm_auth in train_feature]
 
 train_label = train_df['label'].tolist()
 
@@ -449,9 +449,9 @@ print('Run ML done')
 
 # test
 test_feature = zip(test_df['cn'], test_df['jaccard'], test_df['adam'], test_df['cc_mul'], test_df['cc_add'],
-                   test_df['pa_mul'], test_df['pa_add'])
-test_feature = [[cn, jaccard, adam, cc_mul, cc_add, pa_mul, pa_add]
-                for cn, jaccard, adam, cc_mul, cc_add, pa_mul, pa_add in test_feature]
+                   test_df['pa_mul'], test_df['pa_add'],test_df['temp_diff'], test_df['comm_auth'])
+test_feature = [[cn, jaccard, adam, cc_mul, cc_add, pa_mul, pa_add,temp_diff,comm_auth]
+                for cn, jaccard, adam, cc_mul, cc_add, pa_mul, pa_add,temp_diff,comm_auth in test_feature]
 
 predict = dt.predict(test_feature)
 print('Predict')
