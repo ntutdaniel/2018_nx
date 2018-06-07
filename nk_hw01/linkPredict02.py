@@ -387,15 +387,15 @@ def calFeature(data, G, path):
         if edge_id % 10000 == 0:
             print(edge_id, len(data))
     #
-    #data['source id'] = pd.Series(source_id, index=data.index)
-    #data['target id'] = pd.Series(target_id, index=data.index)
-    #data['cn'] = pd.Series(cn, index=data.index)
-    #data['jaccard'] = pd.Series(jaccard, index=data.index)
-    #data['adam'] = pd.Series(adamic, index=data.index)
-    #data['cc_mul'] = pd.Series(cc_mul, index=data.index)
-    #data['cc_add'] = pd.Series(cc_add, index=data.index)
-    #data['pa_mul'] = pd.Series(pa_mul, index=data.index)
-    #data['pa_add'] = pd.Series(pa_add, index=data.index)
+    data['source id'] = pd.Series(source_id, index=data.index)
+    data['target id'] = pd.Series(target_id, index=data.index)
+    data['cn'] = pd.Series(cn, index=data.index)
+    data['jaccard'] = pd.Series(jaccard, index=data.index)
+    data['adam'] = pd.Series(adamic, index=data.index)
+    data['cc_mul'] = pd.Series(cc_mul, index=data.index)
+    data['cc_add'] = pd.Series(cc_add, index=data.index)
+    data['pa_mul'] = pd.Series(pa_mul, index=data.index)
+    data['pa_add'] = pd.Series(pa_add, index=data.index)
 
     data['temp_diff'] = pd.Series(temp_diff, index=data.index)
     data['comm_auth'] = pd.Series(comm_auth, index=data.index)
@@ -425,9 +425,9 @@ ML
 '''
 # train
 train_feature = zip(train_df['cn'], train_df['jaccard'], train_df['adam'], train_df['cc_mul'], train_df['cc_add'],
-                    train_df['pa_mul'], train_df['pa_add'])
-train_feature = [[cn, jaccard, adam, cc_mul, cc_add, pa_mul, pa_add]
-                 for cn, jaccard, adam, cc_mul, cc_add, pa_mul, pa_add in train_feature]
+                    train_df['pa_mul'], train_df['pa_add'], train_df['temp_diff'], train_df['comm_auth'])
+train_feature = [[cn, jaccard, adam, cc_mul, cc_add, pa_mul, pa_add,temp_diff,comm_auth]
+                 for cn, jaccard, adam, cc_mul, cc_add, pa_mul, pa_add,temp_diff,comm_auth in train_feature]
 
 train_label = train_df['label'].tolist()
 
@@ -449,9 +449,9 @@ print('Run ML done')
 
 # test
 test_feature = zip(test_df['cn'], test_df['jaccard'], test_df['adam'], test_df['cc_mul'], test_df['cc_add'],
-                   test_df['pa_mul'], test_df['pa_add'])
-test_feature = [[cn, jaccard, adam, cc_mul, cc_add, pa_mul, pa_add]
-                for cn, jaccard, adam, cc_mul, cc_add, pa_mul, pa_add in test_feature]
+                   test_df['pa_mul'], test_df['pa_add'],test_df['temp_diff'], test_df['comm_auth'])
+test_feature = [[cn, jaccard, adam, cc_mul, cc_add, pa_mul, pa_add,temp_diff,comm_auth]
+                for cn, jaccard, adam, cc_mul, cc_add, pa_mul, pa_add,temp_diff,comm_auth in test_feature]
 
 predict = dt.predict(test_feature)
 print('Predict')
