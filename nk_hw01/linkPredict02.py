@@ -10,6 +10,13 @@ from sklearn.svm import SVC
 from sklearn import tree
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.neighbors import KNeighborsClassifier
+import csv
+import nltk
+
+nltk.download('punkt')  # for tokenization
+nltk.download('stopwords')
+stpwds = set(nltk.corpus.stopwords.words("english"))
+stemmer = nltk.stem.PorterStemmer()
 
 
 def readCsv(path):
@@ -23,6 +30,17 @@ testdata_df = pd.read_csv('data/TestData.csv')
 period1_df_len = period1_df.shape[0]
 period2_df_len = period2_df.shape[0]
 testdata_df_len = testdata_df.shape[0]
+
+# node_info
+with open("data/node_information.csv", "r") as f:
+    reader = csv.reader(f)
+    node_info = list(reader)
+
+IDs = []
+ID_pos = {}
+for element in node_info:
+    ID_pos[element[0]] = len(IDs)
+    IDs.append(element[0])
 
 
 def removeDuplicateEdge(df):
@@ -212,7 +230,7 @@ def generateTrainData(edges01, edge02):
 
 def generateTrainData2(G, nodes01, nodes02, edges02, path):
     period1_not_in_2 = nodes01.append(nodes02).drop_duplicates(keep=False)
-    period1_node_shuffle = random.Random(2).sample(list(period1_not_in_2), 100)
+    period1_node_shuffle = random.Random(2).sample(list(period1_not_in_2), 450)
     sub_graph = G.subgraph(period1_node_shuffle)
     sub_graph_complement = nx.complement(sub_graph)
     # pos = nx.spring_layout(sub_graph)  # 圖的畫法
@@ -236,7 +254,7 @@ def generateTrainData2(G, nodes01, nodes02, edges02, path):
 
 
 # !!!! 設定是否要重新train
-need_generate_train_data = True
+need_generate_train_data = False
 train_df = None
 if need_generate_train_data == True:
     # train_df = generateTrainData(period1_all_possible_edgs_different_period2_edgs, peroid2_edge)
@@ -313,13 +331,44 @@ add feature
 
 # train data feature
 
+
 def calFeature(data, G, path):
     cn, jaccard, adamic, cc_mul, cc_add, pa_mul, pa_add = [], [], [], [], [], [], []
+    overlap_title = []
+    # temporal distance between the papers
+    temp_diff = []
+    # number of common authors
+    comm_auth = []
     source_id, target_id = [], []
 
     for edge_id, edge in enumerate(data['edges'].values):
         source_id.append(edge[0])
         target_id.append(edge[1])
+
+        # node info
+        if (str(edge[0]) in ID_pos.keys() and str(edge[1]) in ID_pos.keys()):
+            source_info = node_info[ID_pos[str(edge[0])]]
+            target_info = node_info[ID_pos[str(edge[1])]]
+
+            source_title = source_info[2].lower().split(" ")
+            # remove stopwords
+            source_title = [token for token in source_title if token not in stpwds]
+            source_title = [stemmer.stem(token) for token in source_title]
+
+            target_title = target_info[2].lower().split(" ")
+            target_title = [token for token in target_title if token not in stpwds]
+            target_title = [stemmer.stem(token) for token in target_title]
+
+            source_auth = source_info[3].split(",")
+            target_auth = target_info[3].split(",")
+
+            overlap_title.append(len(set(source_title).intersection(set(target_title))))
+            temp_diff.append(int(source_info[1]) - int(target_info[1]))
+            comm_auth.append(len(set(source_auth).intersection(set(target_auth))))
+        else:
+            overlap_title.append(0)
+            temp_diff.append(0)
+            comm_auth.append(0)
 
         # neighbor base
         cn.append(common_neighbor(G, edge[0], edge[1]))
@@ -347,6 +396,10 @@ def calFeature(data, G, path):
     data['cc_add'] = pd.Series(cc_add, index=data.index)
     data['pa_mul'] = pd.Series(pa_mul, index=data.index)
     data['pa_add'] = pd.Series(pa_add, index=data.index)
+
+    data['temp_diff'] = pd.Series(temp_diff, index=data.index)
+    data['comm_auth'] = pd.Series(comm_auth, index=data.index)
+    data['overlap_title'] = pd.Series(overlap_title, index=data.index)
 
     print(data.head(10))
 
@@ -381,16 +434,16 @@ train_label = train_df['label'].tolist()
 print('Run ML')
 
 # svm
-svm = SVC(C=1.0, cache_size=4096)
-svm.fit(train_feature, train_label)
+# svm = SVC(C=1.0, cache_size=4096)
+# svm.fit(train_feature, train_label)
 
 # tree
-# dt = tree.DecisionTreeClassifier()
-# dt = dt.fit(train_feature, train_label)
+dt = tree.DecisionTreeClassifier()
+dt = dt.fit(train_feature, train_label)
 
 # rf
-# rf = RandomForestClassifier(random_state=0, n_estimators=300)
-# rf.fit(train_feature, train_label)
+#rf = RandomForestClassifier(random_state=0, n_estimators=300)
+#rf.fit(train_feature, train_label)
 
 print('Run ML done')
 
@@ -400,12 +453,12 @@ test_feature = zip(test_df['cn'], test_df['jaccard'], test_df['adam'], test_df['
 test_feature = [[cn, jaccard, adam, cc_mul, cc_add, pa_mul, pa_add]
                 for cn, jaccard, adam, cc_mul, cc_add, pa_mul, pa_add in test_feature]
 
-predict = svm.predict(test_feature)
+predict = dt.predict(test_feature)
 print('Predict')
 
 # out
 row = [i for i in range(1, 10001)]
 data = {'target id': row, 'label': predict}
 predict = pd.DataFrame(data=data, columns=['target id', 'label'])
-predict.to_csv("predict/dt_nei_cc_pamul.csv", index=False)
+predict.to_csv("predict/predict.csv", index=False)
 print('Get predict file')
